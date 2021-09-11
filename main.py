@@ -28,6 +28,9 @@ url = 'https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/v
 url = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
 DOWNLOAD = False
 PATH = './data/'
+totals = False
+smoothed = False
+relative = True
 
 # ------------------------- functions -----------------------------------
 @st.cache(suppress_st_warning=True)  #
@@ -43,8 +46,9 @@ def load_data(url):
 
 df = load_data(url)
 df = df.drop(df.columns[0], axis=1)
-#print(df.dtypes)
+print(df.dtypes)
 
+st.write(df.columns)
 
 #df['location'] = df['location'].astype('category')
 #print(df[['date']].isna().sum())
@@ -61,11 +65,30 @@ df = df.drop(df.columns[0], axis=1)
 #dfx.head()
 #dfx["total_vaccinations"] = dfx["total_vaccinations"].fillna(0)
 #col_plot = "total_vaccinations_per_hundred"
-display = df.columns
+display = ["Cases", "Tests", "Vaccinations", "Deaths", "Hospitalizations", "Intensive Care"]
 #st.write(display)
 #options = list(range(len(display)))
 #col_plot = st.sidebar.selectbox('Choose variable:', options, format_func=lambda x: display[x])
-col_plot: str = st.sidebar.selectbox('Choose variable:', display, index = 5)
+col_plot_decision: str = st.sidebar.selectbox('Choose variable:', display, index = 0)
+
+if col_plot_decision == "Cases":
+    if totals:
+        if relative:
+            col_plot = "total_cases_per_million"
+        else:
+            col_plot = "total_cases"
+    else:
+        if relative:
+            if smoothed:
+                col_plot = "new_cases_smoothed_per_million"
+            else:
+                col_plot = "new_cases_per_million"
+        else:
+            if relative:
+            col_plot = "total_cases"
+            if smoothed:
+
+
 
 #print('col_plot', col_plot)
 
@@ -129,6 +152,10 @@ if divide_y_bool:
     if max(dfx[col_plot]) > 10000:
         dfx[col_plot] = dfx[col_plot] / 100000
         divide_y_bool = True
+
+relative = st.sidebar.checkbox("Relative to Population")
+smoothed = st.sidebar.checkbox("Smoothed Lines (7-Day Average)")
+totals = st.sidebar.checkbox("Total" + )
 
 
 #print(dfx.head())
