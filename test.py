@@ -1,40 +1,20 @@
-from plotnine.data import economics
-from plotnine import ggplot, aes, geom_line
 
-print(economics.head())
-fig = (
+import streamlit as st
 
-        ggplot(economics)  # What data to use
+import pandas as pd
+from plotnine import ggplot, aes, geom_line, geom_point, scale_x_datetime, theme_light, ylab, scale_color_manual
+from mizani.breaks import date_breaks
 
-        + aes(x="date", y="pop")  # What variable to use
+# Header
+st.header("Corona - test")
 
-        + geom_line()  # Geometric object to use for drawing
+a_selection = st.selectbox('choose a', ['a1', 'a2'], index = 0)
 
-)
-
-#fig.draw()
-print(fig)
-
-import matplotlib.pyplot as plt
-
-
-plt.plot([1,2,3])
-#plt.show()
+if a_selection == 'a1':
 
 
 
-if len([countries]) > 0:
-    ctr_options = ctr_options[~np.isin(ctr_options, [countries])]
-    countries_temp = st.selectbox('Choose country 2:', ctr_options, index=0)
-    if countries_temp != '<select>':
-        countries = np.concatenate((countries, countries_temp), axis=None)
-    #print('countries 2', countries)
 
-print('countries 2', countries)
-print('length countries at 2:', len([countries]))
-if len(countries) > 1:
-    ctr_options = ctr_options[~np.isin(ctr_options, [countries])]
-    countries_temp = st.selectbox('Choose country 3:', ctr_options, index=0)
-    if countries_temp != '<select>':
-        countries = np.concatenate((countries, countries_temp), axis=None)
-    #print('countries 3', countries)
+b_selection = st.selectbox('choose a', ['a1', 'a2'], index = 0)
+
+

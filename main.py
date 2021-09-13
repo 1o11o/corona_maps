@@ -1,38 +1,24 @@
-
 import streamlit as st
-#import requests
 import pandas as pd
-import numpy as np
-#import matplotlib
-# matplotlib.use("Qt5Agg")
-#import matplotlib.pyplot as plt
 from plotnine import ggplot, aes, geom_line, geom_point, scale_x_datetime, theme_light, ylab, scale_color_manual
 from mizani.breaks import date_breaks
-#from mizani.formatters import date_format
-#from plotnine.data import economics
-# import os.path
-from os import path
-
-# This is a sample Python script.
 
 # Header
 st.header("Corona - Checker")
 
-# Subheader
-st.subheader("")
-
-
 # ----------------------------------------------------------------------------------------------------------------------
-# PATH_VACC = "./data/vaccs.pkl"
-url = 'https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/vaccinations.csv'
 url = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
 DOWNLOAD = False
 PATH = './data/'
-totals = False
-smoothed = False
-relative = True
 
-# ------------------------- functions -----------------------------------
+default_relative = False
+default_smoothed = False
+default_relative_totals = True
+
+if "totals" not in st.session_state:
+    col_plot_decision = 'Cases'
+
+# ---------------------------------------------- functions -------------------------------------------------------------
 @st.cache(suppress_st_warning=True)  #
 def load_data(url):
     if DOWNLOAD:
@@ -44,129 +30,63 @@ def load_data(url):
     #df = df.reset_index(drop=True)
     return df
 
+def get_col_plot(str):
+    str = str.lower()
+    if st.session_state.totals:
+        str = "total_" + str
+    else:
+        str = "new_" + str
+    if st.session_state.smoothed:
+        str = str + "_smoothed"
+    if st.session_state.relative:
+        str = str + "_per_million"
+    return(str)
+
+# ------------------------------------------------ load data -----------------------------------------------------------
+
+#session_state = SessionState.get(index_column=None)
 df = load_data(url)
 df = df.drop(df.columns[0], axis=1)
-print(df.dtypes)
 
-st.write(df.columns)
+# ------------------------------------------------ sliders --------------------------------------------------------------
 
-#df['location'] = df['location'].astype('category')
-#print(df[['date']].isna().sum())
-# 0 nas
-#print(df.dtypes)
-#print(pd.to_datetime(dt1))
-#print(pd.to_datetime(df[["date"]][1:10]))
-#df = pd.to_datetime(df[["date"]],errors='coerce', format="%Y-%m-%d")
-#df = df["date"].dt.strftime("%d/%m/%y")
-#df.dtypes
-#print(df.dtypes)
-#exit()
-# dfx.plot(x='date', y='total_vaccinations')
-#dfx.head()
-#dfx["total_vaccinations"] = dfx["total_vaccinations"].fillna(0)
-#col_plot = "total_vaccinations_per_hundred"
+# Choose variable
 display = ["Cases", "Tests", "Vaccinations", "Deaths", "Hospitalizations", "Intensive Care"]
-#st.write(display)
-#options = list(range(len(display)))
-#col_plot = st.sidebar.selectbox('Choose variable:', options, format_func=lambda x: display[x])
-col_plot_decision: str = st.sidebar.selectbox('Choose variable:', display, index = 0)
+col_plot_decision = st.sidebar.selectbox('Choose variable:', display, index = 0)
 
-if col_plot_decision == "Cases":
-    if totals:
-        if relative:
-            col_plot = "total_cases_per_million"
-        else:
-            col_plot = "total_cases"
-    else:
-        if relative:
-            if smoothed:
-                col_plot = "new_cases_smoothed_per_million"
-            else:
-                col_plot = "new_cases_per_million"
-        else:
-            if relative:
-            col_plot = "total_cases"
-            if smoothed:
+st.session_state.relative = st.sidebar.checkbox("Relative to Population", default_relative)
+st.session_state.smoothed = st.sidebar.checkbox("Smoothed Lines (7-Day Average)", default_smoothed)
+st.session_state.totals = st.sidebar.checkbox("Total " + col_plot_decision, default_relative_totals)
 
+col_plot = get_col_plot(col_plot_decision)
+st.write(col_plot)
 
+# Choose Countries
+try:
+    country_selection
+except NameError:
+    country_selection = ["Austria"]
+st.session_state.ctr_options = df.dropna(subset=[col_plot, 'date']).location.unique()
+if 'country_selection' not in st.session_state:
+    st.session_state.country_selection = ['Austria']
+    country_selection = ['Austria']
 
-#print('col_plot', col_plot)
+st.session_state.country_selection = st.sidebar.multiselect('Select countries', st.session_state.ctr_options, default = st.session_state.country_selection)
+st.write('country_selection update selection', st.session_state.country_selection)
+
+countries = st.session_state.country_selection
 
 dfx = df[['date', 'location', col_plot]]
 dfx = dfx.dropna(subset=[col_plot, 'date'])
-
-
-ctr_options = df.location.unique()
-ctr_options = np.insert(ctr_options, 0, '<select>')
-countries_temp = st.sidebar.selectbox('Choose country:', ctr_options, index=14, key = 0)
-if countries_temp != '<select>':
-    countries = [countries_temp]
-
-# loop doesn't work, creates non-unique keys, plus I don't no if it is unnecessarily ressourceintensive to have a constant loop.
-#i = 1
-#while i == len(countries):
-#    ctr_options = ctr_options[~np.isin(ctr_options, [countries])]
-#    countries_temp = st.sidebar.selectbox(f"Choose country {i}:", ctr_options, index=0, key = (i+=1))
-#    if countries_temp != '<select>':
-#        countries = np.concatenate((countries, countries_temp), axis=None)
-#        #i += 1
-#    #print('countries 2', countries)
-
-if len(countries) > 0:
-    ctr_options = ctr_options[~np.isin(ctr_options, [countries])]
-    countries_temp = st.sidebar.selectbox('Choose country 2:', ctr_options, index=0)
-    if countries_temp != '<select>':
-        countries = np.concatenate((countries, countries_temp), axis=None)
-    #print('countries 2', countries)
-
-if len(countries) > 1:
-    ctr_options = ctr_options[~np.isin(ctr_options, [countries])]
-    countries_temp = st.sidebar.selectbox('Choose country 3:', ctr_options, index=0)
-    if countries_temp != '<select>':
-        countries = np.concatenate((countries, countries_temp), axis=None)
-    #print('countries 2', countries)
-
-if len(countries) > 2:
-    ctr_options = ctr_options[~np.isin(ctr_options, [countries])]
-    countries_temp = st.sidebar.selectbox('Choose country 4:', ctr_options, index=0)
-    if countries_temp != '<select>':
-        countries = np.concatenate((countries, countries_temp), axis=None)
-    #print('countries 2', countries
-
-if len(countries) > 3:
-    ctr_options = ctr_options[~np.isin(ctr_options, [countries])]
-    countries_temp = st.sidebar.selectbox('Choose country 5:', ctr_options, index=0)
-    if countries_temp != '<select>':
-        countries = np.concatenate((countries, countries_temp), axis=None)
-    #print('countries 2', countries)
-
-print(countries)
-print(col_plot)
-
-#if(exists(col_plot)):
 dfx = dfx.loc[dfx['location'].isin(countries), ]
 
-# todo: make scrolling goaway
 divide_y_bool = False
 if divide_y_bool:
     if max(dfx[col_plot]) > 10000:
         dfx[col_plot] = dfx[col_plot] / 100000
         divide_y_bool = True
 
-relative = st.sidebar.checkbox("Relative to Population")
-smoothed = st.sidebar.checkbox("Smoothed Lines (7-Day Average)")
-totals = st.sidebar.checkbox("Total" + )
 
-
-#print(dfx.head())
-
-# print(dfx[[col_plot]])
-
-#print(dfx.dtypes)
-#print(dfx.dtypes)
-
-
-# print(dfx[["location"]].dtype)
 
 
 color_palette = ['#7E2E84', '#16CA58', '#FFBA08', '#5BC0EB', '#F25A02']
