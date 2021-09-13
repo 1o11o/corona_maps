@@ -11,13 +11,6 @@ url = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
 DOWNLOAD = False
 PATH = './data/'
 
-default_relative = False
-default_smoothed = False
-default_relative_totals = True
-
-if "totals" not in st.session_state:
-    col_plot_decision = 'Cases'
-
 # ---------------------------------------------- functions -------------------------------------------------------------
 @st.cache(suppress_st_warning=True)  #
 def load_data(url):
@@ -31,16 +24,18 @@ def load_data(url):
     return df
 
 def get_col_plot(str):
-    str = str.lower()
-    if st.session_state.totals:
-        str = "total_" + str
+    col_plot = str.lower()
+    if totals:
+        col_plot = "total_" + col_plot
     else:
-        str = "new_" + str
-    if st.session_state.smoothed:
-        str = str + "_smoothed"
-    if st.session_state.relative:
-        str = str + "_per_million"
-    return(str)
+        col_plot = "new_" + col_plot
+        if smoothed:
+            col_plot = col_plot + "_smoothed"
+    if relative:
+        if str == "Tests":
+            col_plot = col_plot + "_per_thousand"
+        else: col_plot = col_plot + "_per_million"
+    return(col_plot)
 
 # ------------------------------------------------ load data -----------------------------------------------------------
 
@@ -48,51 +43,52 @@ def get_col_plot(str):
 df = load_data(url)
 df = df.drop(df.columns[0], axis=1)
 
+#get_state()
 # ------------------------------------------------ sliders --------------------------------------------------------------
 
 # Choose variable
-display = ["Cases", "Tests", "Vaccinations", "Deaths", "Hospitalizations", "Intensive Care"]
-col_plot_decision = st.sidebar.selectbox('Choose variable:', display, index = 0)
+#display = ["Cases", "Tests", "Vaccinations", "Deaths", "Hospitalizations", "Intensive Care"]
+display = ["Cases", "Tests", "Deaths"]
+col_plot_decision = st.sidebar.selectbox('Choose variable:', display, index = 0) # todo: always defaults???
 
-st.session_state.relative = st.sidebar.checkbox("Relative to Population", default_relative)
-st.session_state.smoothed = st.sidebar.checkbox("Smoothed Lines (7-Day Average)", default_smoothed)
-st.session_state.totals = st.sidebar.checkbox("Total " + col_plot_decision, default_relative_totals)
+# Choose variable options
+st.sidebar.write("Display Options")
+totals = st.sidebar.checkbox("Total " + col_plot_decision, False, key="totals_cb")
+relative = st.sidebar.checkbox("Relative to Population", False)
+smoothed = st.sidebar.checkbox("Smoothed Lines (7-Day Average)", False)
+if totals & smoothed:
+    st.sidebar.write("Smoothed variables only available for new " + col_plot_decision)
+else:
+    st.sidebar.write("")
 
+# get column
 col_plot = get_col_plot(col_plot_decision)
 st.write(col_plot)
 
+# choose time
+#time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), (min(df.date), max(df.date)), 1)
+#time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), (min(df.date), max(df.date)), 1)
+x = st.slider("Label", 0.0, 100.0, (25.0, 75.0), 0.5)
+time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), max(df.date), format=format)
 # Choose Countries
-try:
-    country_selection
-except NameError:
-    country_selection = ["Austria"]
-st.session_state.ctr_options = df.dropna(subset=[col_plot, 'date']).location.unique()
-if 'country_selection' not in st.session_state:
-    st.session_state.country_selection = ['Austria']
-    country_selection = ['Austria']
+ctr_options = df.location.unique()
 
-st.session_state.country_selection = st.sidebar.multiselect('Select countries', st.session_state.ctr_options, default = st.session_state.country_selection)
-st.write('country_selection update selection', st.session_state.country_selection)
+if "countries" not in st.session_state:
+    st.session_state.countries = ["Austria"]
 
-countries = st.session_state.country_selection
+countries = st.sidebar.multiselect('Select countries', ctr_options, default = st.session_state.countries, key="countries")
+
 
 dfx = df[['date', 'location', col_plot]]
 dfx = dfx.dropna(subset=[col_plot, 'date'])
-dfx = dfx.loc[dfx['location'].isin(countries), ]
+dfx = dfx.loc[dfx['location'].isin(countries),]
 
-divide_y_bool = False
-if divide_y_bool:
-    if max(dfx[col_plot]) > 10000:
-        dfx[col_plot] = dfx[col_plot] / 100000
-        divide_y_bool = True
-
-
+countries_missing = [value for value in countries if value not in dfx.location.unique()]
+if len(countries_missing) > 0:
+    st.write("No data available for the following countries. Please choose different countries or variables.\n" + ', '.join(countries_missing))
 
 
 color_palette = ['#7E2E84', '#16CA58', '#FFBA08', '#5BC0EB', '#F25A02']
-#st.write('plotdf', dfx)
-#st.write('dtypes', dfx.dtypes)
-
 
 fig = (
 
@@ -106,10 +102,5 @@ fig = (
         + scale_color_manual(values = color_palette, breaks = countries)
         + theme_light()
 )
-
-
-
-if divide_y_bool:
-    fig = fig + ylab(col_plot + ' in 100,000s')
 
 st.pyplot(ggplot.draw(fig))
