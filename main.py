@@ -3,11 +3,8 @@ import pandas as pd
 from plotnine import ggplot, aes, geom_line, geom_point, scale_x_datetime, theme_light, ylab, scale_color_manual
 from mizani.breaks import date_breaks
 
-# Header
-st.header("Corona - Checker")
-
-# ----------------------------------------------------------------------------------------------------------------------
-url = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
+# -------------------------------------------- Parameter ---------------------------------------------------------------
+URL = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
 DOWNLOAD = False
 PATH = './data/'
 
@@ -38,18 +35,20 @@ def get_col_plot(str):
     return(col_plot)
 
 # ------------------------------------------------ load data -----------------------------------------------------------
+# Header
+st.header("Corona - Checker")
 
 #session_state = SessionState.get(index_column=None)
-df = load_data(url)
+df = load_data(URL)
 df = df.drop(df.columns[0], axis=1)
 
 #get_state()
-# ------------------------------------------------ sliders --------------------------------------------------------------
+# ------------------------------------------------ User input --------------------------------------------------------------
 
 # Choose variable
 #display = ["Cases", "Tests", "Vaccinations", "Deaths", "Hospitalizations", "Intensive Care"]
-display = ["Cases", "Tests", "Deaths"]
-col_plot_decision = st.sidebar.selectbox('Choose variable:', display, index = 0) # todo: always defaults???
+var_options = ["Cases", "Tests", "Deaths"]
+col_plot_decision = st.sidebar.selectbox('Choose variable:', var_options, index = 0) # todo: always defaults???
 
 # Choose variable options
 st.sidebar.write("Display Options")
@@ -59,7 +58,7 @@ smoothed = st.sidebar.checkbox("Smoothed Lines (7-Day Average)", False)
 if totals & smoothed:
     st.sidebar.write("Smoothed variables only available for new " + col_plot_decision)
 else:
-    st.sidebar.write("")
+    st.sidebar.write(" ")
 
 # get column
 col_plot = get_col_plot(col_plot_decision)
@@ -69,7 +68,7 @@ st.write(col_plot)
 #time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), (min(df.date), max(df.date)), 1)
 #time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), (min(df.date), max(df.date)), 1)
 x = st.slider("Label", 0.0, 100.0, (25.0, 75.0), 0.5)
-time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), max(df.date), format=format)
+#time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), max(df.date), format=format)
 # Choose Countries
 ctr_options = df.location.unique()
 
