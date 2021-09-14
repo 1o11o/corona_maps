@@ -6,7 +6,7 @@ from datetime import datetime
 
 # -------------------------------------------- Parameter ---------------------------------------------------------------
 URL = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
-DOWNLOAD = False
+DOWNLOAD = True
 PATH = './data/'
 
 # ---------------------------------------------- functions -------------------------------------------------------------
