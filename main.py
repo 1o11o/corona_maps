@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from plotnine import ggplot, aes, geom_line, geom_point, scale_x_datetime, theme_light, ylab, scale_color_manual
 from mizani.breaks import date_breaks
+from datetime import datetime
 
 # -------------------------------------------- Parameter ---------------------------------------------------------------
 URL = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
@@ -16,8 +17,9 @@ def load_data(url):
         st.write('cache miss, loaded data')
         pd.DataFrame.to_csv(df, PATH + 'owid_all.csv')
     else:
-        df = pd.read_csv("./data/owid_all.csv")
+        df = pd.read_csv("./data/owid_all.csv", parse_dates=[3], infer_datetime_format=False)
     #df = df.reset_index(drop=True)
+    df['date'] = pd.to_datetime(df.date, format='%Y-%m-%d')
     return df
 
 def get_col_plot(str):
@@ -42,6 +44,7 @@ st.header("Corona - Checker")
 df = load_data(URL)
 df = df.drop(df.columns[0], axis=1)
 
+
 #get_state()
 # ------------------------------------------------ User input --------------------------------------------------------------
 
@@ -64,11 +67,20 @@ else:
 col_plot = get_col_plot(col_plot_decision)
 st.write(col_plot)
 
+
 # choose time
 #time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), (min(df.date), max(df.date)), 1)
-#time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), (min(df.date), max(df.date)), 1)
-x = st.slider("Label", 0.0, 100.0, (25.0, 75.0), 0.5)
-#time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), max(df.date), format=format)
+
+
+#print(type(min(df.date)))
+mint = min(df.date).to_pydatetime().date()
+maxt = max(df.date).to_pydatetime().date()
+time_span = st.sidebar.slider("Select Time span", mint, maxt, (mint, maxt), format="D.M.Y")
+
+print(time_span)
+print(type(time_span[0]))
+print(pd.to_datetime(time_span[1]))
+#time_span = st.sidebar.slider("Select Time span", min(df.date), max(df.date), (min(df.date), max(df.date)), format=format)
 # Choose Countries
 ctr_options = df.location.unique()
 
@@ -80,7 +92,7 @@ countries = st.sidebar.multiselect('Select countries', ctr_options, default = st
 
 dfx = df[['date', 'location', col_plot]]
 dfx = dfx.dropna(subset=[col_plot, 'date'])
-dfx = dfx.loc[dfx['location'].isin(countries),]
+dfx = dfx.loc[dfx['location'].isin(countries) & (dfx['date'] >= pd.to_datetime(time_span[0])) & (dfx['date'] <= pd.to_datetime(time_span[1])),]
 
 countries_missing = [value for value in countries if value not in dfx.location.unique()]
 if len(countries_missing) > 0:
